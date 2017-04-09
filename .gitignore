@@ -63,3 +63,9 @@ target/
 
 #Ipython Notebook
 .ipynb_checkpoints
+
+# OS
+.DS_Store
+
+# Data i/o playground
+playground
