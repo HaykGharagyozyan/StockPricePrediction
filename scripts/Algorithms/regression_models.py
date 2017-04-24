@@ -77,9 +77,10 @@ def main(dir_path, output_dir):
         except Exception, e:
             pass
             traceback.print_exc()
-    
-    with open(os.path.join(output_dir, 'scores.pickle'), 'wb') as handle:
-        pickle.dump(scores, handle)
+            
+    if (output_dir):
+        with open(os.path.join(output_dir, 'scores.pickle'), 'wb') as handle:
+            pickle.dump(scores, handle)
 
 if __name__ == '__main__':
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)

@@ -195,7 +195,7 @@ def performRegression(dataset, split, symbol, output_dir):
     #train, test = getFeatures(train[features], \
     #    train[output], test[features], 16)
 
-    out_params = (symbol, output_dir)
+    out_params = (symbol, output_dir);
 
     output = dataset.columns[0]
 
@@ -273,9 +273,12 @@ def benchmark_model(model, train, test, features, output, \
     plt.title(model_name)
     plt.legend(loc='best')
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, str(symbol) + '_' \
-        + model_name + '.png'), dpi=100)
-    #plt.show()
+    print(output_dir, '#1'*90)
+    if (output_dir):
+        plt.savefig(os.path.join(output_dir, str(symbol) + '_' \
+            + model_name + '.png'), dpi=100)
+    else:
+        plt.show()
     plt.clf()
 
     return predicted_value
