@@ -24,7 +24,10 @@ from sklearn.svm import SVC, SVR
 from sklearn.qda import QDA
 import os
 from sklearn.grid_search import GridSearchCV
-from Neural_Network import NeuralNet
+
+from keras.models import Sequential
+from keras.layers import Dense, Activation
+from keras.wrappers.scikit_learn import KerasRegressor
 
 def load_dataset(path_directory, symbol): 
     """
@@ -218,7 +221,11 @@ def performRegression(dataset, split, symbol, output_dir):
     maxiter = 1000
     batch = 150
 
-    classifier = NeuralNet(50, learn_rate=1e-2)
+    # fix random seed for reproducibility
+    seed = 7
+    np.random.seed(seed)
+    estimator = KerasRegressor(build_fn=baseline_model, nb_epoch=100, batch_size=5, verbose=0) 
+    classifier = estimator
 
     predicted_values.append(benchmark_model(classifier, \
         train, test, features, output, out_params, True, \
@@ -239,6 +246,15 @@ def performRegression(dataset, split, symbol, output_dir):
     print(mean_squared_errors, r2_scores)
 
     return mean_squared_errors, r2_scores
+
+def baseline_model():
+	# create model
+	model = Sequential()
+	model.add(Dense(82, input_dim=82, kernel_initializer='normal', activation='relu'))
+	model.add(Dense(1, kernel_initializer='normal'))
+	# Compile model
+	model.compile(loss='mean_squared_error', optimizer='adam')
+	return model
 
 def benchmark_model(model, train, test, features, output,\
     output_params, isNN, *args, **kwargs):
@@ -272,13 +288,14 @@ def benchmark_model(model, train, test, features, output,\
         plt.plot(predicted_value, color='b', ls='--', label='predicted_value Value')
     else:
         print('begin: fit')
-        model.fit(train[features].as_matrix(), train[output].as_matrix(), *args, **kwargs)
+        model.fit(train[features].as_matrix(), train[output].as_matrix())
         print('end: fit')
         print('begin: predict')
         predicted_value = model.predict(test[features].as_matrix())
+        print('predicted_value:', predicted_value)
         print('end: predict')
         plt.plot(test[output].as_matrix(), color='g', ls='-', label='Actual Value')
-        plt.plot(predicted_value, color='b', ls='--')
+        plt.plot(predicted_value, color='b', ls='--', label='predicted_value Value')
         
 
     plt.xlabel('Number of Set')
