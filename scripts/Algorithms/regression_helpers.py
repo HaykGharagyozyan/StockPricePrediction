@@ -213,7 +213,7 @@ def performRegression(dataset, split, symbol, output_dir):
     for classifier in classifiers:
 
         predicted_values.append(benchmark_model(classifier, \
-            train, test, features, output, out_params))
+            train, test, features, output, out_params, False))
 
     maxiter = 1000
     batch = 150
@@ -221,7 +221,7 @@ def performRegression(dataset, split, symbol, output_dir):
     classifier = NeuralNet(50, learn_rate=1e-2)
 
     predicted_values.append(benchmark_model(classifier, \
-        train, test, features, output, out_params, \
+        train, test, features, output, out_params, True, \
         fine_tune=False, maxiter=maxiter, SGD=True, batch=batch, rho=0.9))
     
 
@@ -240,8 +240,8 @@ def performRegression(dataset, split, symbol, output_dir):
 
     return mean_squared_errors, r2_scores
 
-def benchmark_model(model, train, test, features, output, \
-    output_params, *args, **kwargs):
+def benchmark_model(model, train, test, features, output,\
+    output_params, isNN, *args, **kwargs):
     '''
         Performs Training and Testing of the Data on the Model.
     '''
@@ -260,12 +260,26 @@ def benchmark_model(model, train, test, features, output, \
     '''
 
     symbol, output_dir = output_params
-
-    model.fit(train[features].as_matrix(), train[output].as_matrix(), *args, **kwargs)
-    predicted_value = model.predict(test[features].as_matrix())
-
-    plt.plot(test[output].as_matrix(), color='g', ls='-', label='Actual Value')
-    plt.plot(predicted_value, color='b', ls='--', label='predicted_value Value')
+    
+    if (not isNN):
+        print('begin: fit')
+        model.fit(train[features].as_matrix(), train[output].as_matrix(), *args, **kwargs)
+        print('end: fit')
+        print('begin: predict')
+        predicted_value = model.predict(test[features].as_matrix())
+        print('end: predict')
+        plt.plot(test[output].as_matrix(), color='g', ls='-', label='Actual Value')
+        plt.plot(predicted_value, color='b', ls='--', label='predicted_value Value')
+    else:
+        print('begin: fit')
+        model.fit(train[features].as_matrix(), train[output].as_matrix(), *args, **kwargs)
+        print('end: fit')
+        print('begin: predict')
+        predicted_value = model.predict(test[features].as_matrix())
+        print('end: predict')
+        plt.plot(test[output].as_matrix(), color='g', ls='-', label='Actual Value')
+        plt.plot(predicted_value, color='b', ls='--')
+        
 
     plt.xlabel('Number of Set')
     plt.ylabel('Output Value')
@@ -273,7 +287,6 @@ def benchmark_model(model, train, test, features, output, \
     plt.title(model_name)
     plt.legend(loc='best')
     plt.tight_layout()
-    print(output_dir, '#1'*90)
     if (output_dir):
         plt.savefig(os.path.join(output_dir, str(symbol) + '_' \
             + model_name + '.png'), dpi=100)
