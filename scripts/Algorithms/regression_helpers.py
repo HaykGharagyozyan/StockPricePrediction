@@ -28,6 +28,7 @@ from sklearn.grid_search import GridSearchCV
 from keras.models import Sequential
 from keras.layers import Dense, Activation
 from keras.wrappers.scikit_learn import KerasRegressor
+from keras.utils import plot_model
 
 def load_dataset(path_directory, symbol): 
     """
@@ -220,17 +221,33 @@ def performRegression(dataset, split, symbol, output_dir):
 
     maxiter = 1000
     batch = 150
+    
+    
+    epochs=20
+    batch_size=5
 
     # fix random seed for reproducibility
     seed = 7
     np.random.seed(seed)
-    estimator = KerasRegressor(build_fn=baseline_model, nb_epoch=100, batch_size=5, verbose=0) 
-    classifier = estimator
-
-    predicted_values.append(benchmark_model(classifier, \
-        train, test, features, output, out_params, True, \
-        fine_tune=False, maxiter=maxiter, SGD=True, batch=batch, rho=0.9))
+    estimator = KerasRegressor(build_fn=baseline_model, epochs=epochs, batch_size=batch_size, verbose=1, shuffle=False) 
+    classifier1 = estimator
     
+    classifier2 = baseline_model()
+    
+    print('begin: classifier1-classifier1'*5)
+    
+    
+    predicted_values.append(benchmark_model(classifier1, \
+        train, test, features, output, out_params, True))
+    
+    print('end: classifier1-classifier1'*5)
+    
+    print('begin: classifier2-classifier2'*5)
+    
+    predicted_values.append(benchmark_model(classifier2, \
+        train, test, features, output, out_params, True, epochs=epochs, batch_size=batch_size, verbose=1, shuffle=False))
+    
+    print('end: classifier2-classifier2'*5)
 
     print('-'*80)
 
@@ -249,12 +266,19 @@ def performRegression(dataset, split, symbol, output_dir):
 
 def baseline_model():
 	# create model
-	model = Sequential()
-	model.add(Dense(82, input_dim=82, kernel_initializer='normal', activation='relu'))
-	model.add(Dense(1, kernel_initializer='normal'))
+    model = Sequential()
+    model.add(Dense(82, input_dim=82, kernel_initializer='normal', activation='relu'))
+    model.add(Dense(82*2 +1, input_dim=82, kernel_initializer='normal', activation='relu'))
+    model.add(Dense(82, input_dim=82*2 +1, kernel_initializer='normal', activation='relu'))
+    
+    model.add(Dense(1, input_dim=82, kernel_initializer='normal'))
 	# Compile model
-	model.compile(loss='mean_squared_error', optimizer='adam')
-	return model
+    model.compile(loss='mean_squared_error', optimizer='adam')
+    
+    model_img_output = '../../playground/output/model.png';
+    plot_model(model, to_file=model_img_output, show_shapes=True)
+    print('output model to:', model_img_output)
+    return model
 
 def benchmark_model(model, train, test, features, output,\
     output_params, isNN, *args, **kwargs):
@@ -288,10 +312,10 @@ def benchmark_model(model, train, test, features, output,\
         plt.plot(predicted_value, color='b', ls='--', label='predicted_value Value')
     else:
         print('begin: fit')
-        model.fit(train[features].as_matrix(), train[output].as_matrix())
+        model.fit(train[features].as_matrix(), train[output].as_matrix(), *args, **kwargs)
         print('end: fit')
         print('begin: predict')
-        predicted_value = model.predict(test[features].as_matrix())
+        predicted_value = model.predict(test[features].as_matrix(), batch_size=5, verbose=1)
         print('predicted_value:', predicted_value)
         print('end: predict')
         plt.plot(test[output].as_matrix(), color='g', ls='-', label='Actual Value')
