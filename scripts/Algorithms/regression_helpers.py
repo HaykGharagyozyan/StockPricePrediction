@@ -20,15 +20,21 @@ from sklearn.ensemble import AdaBoostClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 #from sklearn.svm import SVR
 from sklearn.feature_selection import SelectKBest, chi2
-from sklearn.svm import SVC, SVR
+from sklearn.svm import SVC
 from sklearn.qda import QDA
 import os
-from sklearn.grid_search import GridSearchCV
 
+#NN
 from keras.models import Sequential
 from keras.layers import Dense, Activation
 from keras.wrappers.scikit_learn import KerasRegressor
 from keras.utils import plot_model
+
+#SVM
+from sklearn.svm import SVR
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import learning_curve
+from sklearn.kernel_ridge import KernelRidge
 
 def load_dataset(path_directory, symbol): 
     """
@@ -184,13 +190,30 @@ def getFeatures(X_train, y_train, X_test, num_features):
     X_test = ch2.transform(X_test)
     return X_train, X_test
 
+#### Works well for KNN only:begin
+
+def discretize(value, min_val, max_val, range_touple=(0, 100)):
+    unit = (max_val - min_val) / range_touple[1];
+    return (value - min_val) * unit;
+
+def analogize(value, min_val, max_val, range_touple=(0, 100)):
+    unit = (max_val - min_val) / range_touple[1];
+    return (value/unit) + min_val;
+    
+### Works well for KNN only:end
+
 def performRegression(dataset, split, symbol, output_dir):
     """
         Performing Regression on 
         Various algorithms
     """
+    
+    touple = (4,5);
 
     features = dataset.columns[1:]
+    print("features::::::::::", features)
+    #features = features[touple[0]:touple[1]]
+    #SSprint("features::::::::::", features)
     index = int(np.floor(dataset.shape[0]*split))
     train, test = dataset[:index], dataset[index:]
     print('Size of train set: ', train.shape)
@@ -198,16 +221,39 @@ def performRegression(dataset, split, symbol, output_dir):
     
     #train, test = getFeatures(train[features], \
     #    train[output], test[features], 16)
+    
 
-    out_params = (symbol, output_dir);
+    # discretization
+    # minMaxMap = {};
+    # for i in features:
+    #     minMaxMap[i] = {
+    #             'min': train[i].min(),
+    #             'max': train[i].max()
+    #         };
 
+    # for i in features:
+    #     train[i] = train[i].apply(lambda col: discretize(col, minMaxMap[i]['min'], minMaxMap[i]['max']))
+    # for i in features:
+    #     test1[i] = test[i].apply(lambda col: discretize(col, minMaxMap[i]['min'], minMaxMap[i]['max']))
+    
     output = dataset.columns[0]
 
+    out_params = (symbol, output_dir);
     predicted_values = []
+    
+    svr = GridSearchCV(SVR(kernel='rbf'), cv=5,
+                   param_grid={"C": [1e0, 1e1, 1e2, 1e3], "epsilon": [0.0001, 0.00001, 0.000001, 0.0000001]})
+    
+    kr = GridSearchCV(KernelRidge(kernel='rbf'), cv=5,
+                  param_grid={"alpha": [1e0, 0.1, 1e-2, 1e-3]})
+
 
     classifiers = [
         RandomForestRegressor(n_estimators=10, n_jobs=-1),
-        SVR(C=100000, kernel='rbf', epsilon=0.1, gamma=1, degree=2),
+        SVR(C=100000, kernel='rbf', epsilon=0.1, gamma=1, degree=2),#original: learnes fast workes not well
+        SVR(C=1, kernel='rbf', epsilon=0.0000001, tol=0.00000001),#: learnes slow workes well, only common features
+        #svr,#GridSearchCV, workes not well
+        #kr,#GridSearchCV, KernelRidge svm works better
         BaggingRegressor(),
         AdaBoostRegressor(),
         KNeighborsRegressor(),
@@ -223,7 +269,7 @@ def performRegression(dataset, split, symbol, output_dir):
     batch = 150
     
     
-    epochs=20
+    epochs=3
     batch_size=5
 
     # fix random seed for reproducibility
@@ -267,11 +313,12 @@ def performRegression(dataset, split, symbol, output_dir):
 def baseline_model():
 	# create model
     model = Sequential()
-    model.add(Dense(82, input_dim=82, kernel_initializer='normal', activation='relu'))
-    model.add(Dense(82*2 +1, input_dim=82, kernel_initializer='normal', activation='relu'))
-    model.add(Dense(82, input_dim=82*2 +1, kernel_initializer='normal', activation='relu'))
+    feature_count = 82
+    model.add(Dense(feature_count, input_dim=feature_count, kernel_initializer='normal', activation='relu'))
+    model.add(Dense(feature_count*2 +1, input_dim=feature_count, kernel_initializer='normal', activation='relu'))
+    model.add(Dense(feature_count, input_dim=feature_count*2 +1, kernel_initializer='normal', activation='relu'))
     
-    model.add(Dense(1, input_dim=82, kernel_initializer='normal'))
+    model.add(Dense(1, input_dim=feature_count, kernel_initializer='normal'))
 	# Compile model
     model.compile(loss='mean_squared_error', optimizer='adam')
     
@@ -307,6 +354,7 @@ def benchmark_model(model, train, test, features, output,\
         print('end: fit')
         print('begin: predict')
         predicted_value = model.predict(test[features].as_matrix())
+        #predicted_value = analogize(predicted_value, minMaxMap[output]['min'], minMaxMap[output]['max'])
         print('end: predict')
         plt.plot(test[output].as_matrix(), color='g', ls='-', label='Actual Value')
         plt.plot(predicted_value, color='b', ls='--', label='predicted_value Value')

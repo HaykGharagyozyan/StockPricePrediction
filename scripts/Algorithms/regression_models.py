@@ -69,6 +69,13 @@ def main(dir_path, output_dir):
 
             print('Number of NaN after temporal shifting: ', count_missing(finance))
             print('Size of data frame after feature creation: ', finance.shape)
+            
+            
+            #--
+            #finance['volume'] = finance['volume']/1e12
+            #--
+            
+            
 
             mean_squared_errors, r2_scores = performRegression(finance, 0.95, \
                 symbol, output_dir)
