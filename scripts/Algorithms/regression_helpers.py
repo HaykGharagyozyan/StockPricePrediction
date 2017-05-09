@@ -36,6 +36,8 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import learning_curve
 from sklearn.kernel_ridge import KernelRidge
 
+from sklearn.preprocessing import MinMaxScaler
+
 def load_dataset(path_directory, symbol): 
     """
         Import DataFrame from Dataset.
@@ -208,14 +210,22 @@ def performRegression(dataset, split, symbol, output_dir):
         Various algorithms
     """
     
+    dataset_cp = dataset.copy();
+    minMaxScalerMap = {};    
+    for i in dataset:
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        minMaxScalerMap[i] = scaler
+        dataset[i] = scaler.fit_transform(dataset[i])
+    
     touple = (4,5);
 
     features = dataset.columns[1:]
     print("features::::::::::", features)
     #features = features[touple[0]:touple[1]]
-    #SSprint("features::::::::::", features)
+    #print("features::::::::::", features)
     index = int(np.floor(dataset.shape[0]*split))
     train, test = dataset[:index], dataset[index:]
+    train_cp, test_cp = dataset_cp[:index], dataset_cp[index:]
     print('Size of train set: ', train.shape)
     print('Size of test set: ', test.shape)
     
@@ -259,24 +269,23 @@ def performRegression(dataset, split, symbol, output_dir):
         KNeighborsRegressor(),
         GradientBoostingRegressor(),
     ]
+    
+    classifiers = []
 
     for classifier in classifiers:
 
         predicted_values.append(benchmark_model(classifier, \
-            train, test, features, output, out_params, False))
-
-    maxiter = 1000
-    batch = 150
+            train, test, features, output, out_params, False, minMaxScalerMap, test_cp))
     
     
-    epochs=3
-    batch_size=5
+    epochs=1
+    batch_size=1
 
     # fix random seed for reproducibility
     seed = 7
     np.random.seed(seed)
     estimator = KerasRegressor(build_fn=baseline_model, epochs=epochs, batch_size=batch_size, verbose=1, shuffle=False) 
-    classifier1 = estimator
+    classifier1 = estimator #seems working better than simple baseline_model()
     
     classifier2 = baseline_model()
     
@@ -284,14 +293,14 @@ def performRegression(dataset, split, symbol, output_dir):
     
     
     predicted_values.append(benchmark_model(classifier1, \
-        train, test, features, output, out_params, True))
+        train, test, features, output, out_params, True, minMaxScalerMap, test_cp))
     
     print('end: classifier1-classifier1'*5)
     
     print('begin: classifier2-classifier2'*5)
     
     predicted_values.append(benchmark_model(classifier2, \
-        train, test, features, output, out_params, True, epochs=epochs, batch_size=batch_size, verbose=1, shuffle=False))
+        train, test, features, output, out_params, True, minMaxScalerMap, test_cp, epochs=epochs, batch_size=batch_size, verbose=1, shuffle=False))
     
     print('end: classifier2-classifier2'*5)
 
@@ -301,12 +310,12 @@ def performRegression(dataset, split, symbol, output_dir):
 
     r2_scores = []
 
-    for pred in predicted_values:
-        mean_squared_errors.append(mean_squared_error(test[output].as_matrix(), \
-            pred.as_matrix()))
-        r2_scores.append(r2_score(test[output].as_matrix(), pred.as_matrix()))
+    #for pred in predicted_values:
+    #    mean_squared_errors.append(mean_squared_error(test[output].as_matrix(), \
+    #        pred.as_matrix()))
+    #    r2_scores.append(r2_score(test[output].as_matrix(), pred.as_matrix()))
 
-    print(mean_squared_errors, r2_scores)
+    #print(mean_squared_errors, r2_scores)
 
     return mean_squared_errors, r2_scores
 
@@ -328,7 +337,7 @@ def baseline_model():
     return model
 
 def benchmark_model(model, train, test, features, output,\
-    output_params, isNN, *args, **kwargs):
+    output_params, isNN, minMaxScalerMap, test_cp, *args, **kwargs):
     '''
         Performs Training and Testing of the Data on the Model.
     '''
@@ -356,8 +365,9 @@ def benchmark_model(model, train, test, features, output,\
         predicted_value = model.predict(test[features].as_matrix())
         #predicted_value = analogize(predicted_value, minMaxMap[output]['min'], minMaxMap[output]['max'])
         print('end: predict')
-        plt.plot(test[output].as_matrix(), color='g', ls='-', label='Actual Value')
-        plt.plot(predicted_value, color='b', ls='--', label='predicted_value Value')
+        plt.plot(test_cp[output].as_matrix(), color='r', ls='-', label='Original Value')
+        #plt.plot(minMaxScalerMap[output].inverse_transform(test[output].as_matrix()), color='g', ls='-', label='Actual Value')
+        plt.plot(minMaxScalerMap[output].inverse_transform(predicted_value), color='b', ls='--', label='predicted_value Value')
     else:
         print('begin: fit')
         model.fit(train[features].as_matrix(), train[output].as_matrix(), *args, **kwargs)
@@ -366,8 +376,9 @@ def benchmark_model(model, train, test, features, output,\
         predicted_value = model.predict(test[features].as_matrix(), batch_size=5, verbose=1)
         print('predicted_value:', predicted_value)
         print('end: predict')
-        plt.plot(test[output].as_matrix(), color='g', ls='-', label='Actual Value')
-        plt.plot(predicted_value, color='b', ls='--', label='predicted_value Value')
+        plt.plot(test_cp[output].as_matrix(), color='r', ls='-', label='Original Value')
+        #plt.plot(minMaxScalerMap[output].inverse_transform(test[output].as_matrix()), color='g', ls='-', label='Actual Value')
+        plt.plot(minMaxScalerMap[output].inverse_transform(predicted_value), color='b', ls='--', label='predicted_value Value')
         
 
     plt.xlabel('Number of Set')
