@@ -26,7 +26,7 @@ import os
 
 #NN
 from keras.models import Sequential
-from keras.layers import Dense, Activation
+from keras.layers import Dense, Activation, LSTM
 from keras.wrappers.scikit_learn import KerasRegressor
 from keras.utils import plot_model
 
@@ -37,6 +37,8 @@ from sklearn.model_selection import learning_curve
 from sklearn.kernel_ridge import KernelRidge
 
 from sklearn.preprocessing import MinMaxScaler
+
+import time
 
 def load_dataset(path_directory, symbol): 
     """
@@ -81,10 +83,10 @@ def addFeatures(dataframe, adjclose, returns, n):
     dataframe[return_n] = dataframe[adjclose].pct_change(n)
     
     roll_n = returns[7:] + "RolMean" + str(n)
-    dataframe[roll_n] = pd.rolling_mean(dataframe[returns], n)
+    dataframe[roll_n] = dataframe[returns].rolling(window=n,center=False).mean()
 
     exp_ma = returns[7:] + "ExponentMovingAvg" + str(n)
-    dataframe[exp_ma] = pd.ewma(dataframe[returns], halflife=30)
+    dataframe[exp_ma] = dataframe[returns].ewm(halflife=30,ignore_na=False,min_periods=0,adjust=True).mean()
     
 def mergeDataframes(datasets):
     """
@@ -204,6 +206,18 @@ def analogize(value, min_val, max_val, range_touple=(0, 100)):
     
 ### Works well for KNN only:end
 
+
+def create_dataset(dataset, features, output, look_back=1):
+    dataX, dataY = [], []
+    for i in range(len(dataset)-look_back-1):
+        a = dataset.iloc[i:(i+look_back)][features].as_matrix()
+        dataX.append(a)
+        b = dataset.iloc[i + look_back][output];
+        dataY.append(b)
+        #print('__________a:', a)
+        #print('__________b:', b)
+    return np.array(dataX), np.array([dataY]);
+
 def performRegression(dataset, split, symbol, output_dir):
     """
         Performing Regression on 
@@ -215,16 +229,18 @@ def performRegression(dataset, split, symbol, output_dir):
     for i in dataset:
         scaler = MinMaxScaler(feature_range=(0, 1))
         minMaxScalerMap[i] = scaler
-        dataset[i] = scaler.fit_transform(dataset[i])
+        dataset[i] = scaler.fit_transform(dataset[i].reshape(-1, 1))
     
     touple = (4,5);
 
     features = dataset.columns[1:]
-    print("features::::::::::", features)
+    #print("features::::::::::", features)
     #features = features[touple[0]:touple[1]]
     #print("features::::::::::", features)
     index = int(np.floor(dataset.shape[0]*split))
     train, test = dataset[:index], dataset[index:]
+
+    print('*'*80)
     train_cp, test_cp = dataset_cp[:index], dataset_cp[index:]
     print('Size of train set: ', train.shape)
     print('Size of test set: ', test.shape)
@@ -270,12 +286,16 @@ def performRegression(dataset, split, symbol, output_dir):
         GradientBoostingRegressor(),
     ]
     
-    classifiers = []
+    #classifiers = []
 
     for classifier in classifiers:
+        pred = benchmark_model(classifier, \
+            train, test, features, output, out_params, False, minMaxScalerMap, test_cp)
 
-        predicted_values.append(benchmark_model(classifier, \
-            train, test, features, output, out_params, False, minMaxScalerMap, test_cp))
+        predicted_values.append(pred)
+        s = score(pred, test_cp, output)
+        print(s)
+        time.sleep(4)
     
     
     epochs=1
@@ -287,7 +307,7 @@ def performRegression(dataset, split, symbol, output_dir):
     estimator = KerasRegressor(build_fn=baseline_model, epochs=epochs, batch_size=batch_size, verbose=1, shuffle=False) 
     classifier1 = estimator #seems working better than simple baseline_model()
     
-    classifier2 = baseline_model()
+    classifier2 = lstm(look_back=1)
     
     print('begin: classifier1-classifier1'*5)
     
@@ -300,7 +320,7 @@ def performRegression(dataset, split, symbol, output_dir):
     print('begin: classifier2-classifier2'*5)
     
     predicted_values.append(benchmark_model(classifier2, \
-        train, test, features, output, out_params, True, minMaxScalerMap, test_cp, epochs=epochs, batch_size=batch_size, verbose=1, shuffle=False))
+        train, test, features, output, out_params, 'LSTM', minMaxScalerMap, test_cp, epochs=epochs, batch_size=batch_size, verbose=1, shuffle=False))
     
     print('end: classifier2-classifier2'*5)
 
@@ -310,13 +330,19 @@ def performRegression(dataset, split, symbol, output_dir):
 
     r2_scores = []
 
-    #for pred in predicted_values:
-    #    mean_squared_errors.append(mean_squared_error(test[output].as_matrix(), \
-    #        pred.as_matrix()))
-    #    r2_scores.append(r2_score(test[output].as_matrix(), pred.as_matrix()))
+    for pred in predicted_values:
+        s = score(pred, test_cp, output)
+        mean_squared_errors.append(s[0])
+        r2_scores.append(s[1])
 
-    #print(mean_squared_errors, r2_scores)
+    print(mean_squared_errors, r2_scores)
 
+    return mean_squared_errors, r2_scores
+
+def score(pred, test_cp, output):
+    mean_squared_errors = (mean_squared_error(test_cp[output].as_matrix(), \
+            pred))
+    r2_scores = r2_score(test_cp[output], pred)
     return mean_squared_errors, r2_scores
 
 def baseline_model():
@@ -334,6 +360,23 @@ def baseline_model():
     model_img_output = '../../playground/output/model.png';
     plot_model(model, to_file=model_img_output, show_shapes=True)
     print('output model to:', model_img_output)
+    return model
+
+def lstm(look_back=1):
+    feature_count = 82
+    model = Sequential()
+    model.add(LSTM(feature_count, batch_input_shape=(None, look_back , feature_count ), return_sequences=True )) #input_dim=feature_count
+    
+    model.add(LSTM(feature_count/2, return_sequences=True))
+    
+    model.add(LSTM(feature_count/4, return_sequences=True))
+    
+    model.add(LSTM(feature_count/8, return_sequences=True))
+    
+    model.add(LSTM(feature_count/16))
+    
+    model.add(Dense(1))
+    model.compile(loss='mean_squared_error', optimizer='adam')
     return model
 
 def benchmark_model(model, train, test, features, output,\
@@ -366,9 +409,12 @@ def benchmark_model(model, train, test, features, output,\
         #predicted_value = analogize(predicted_value, minMaxMap[output]['min'], minMaxMap[output]['max'])
         print('end: predict')
         plt.plot(test_cp[output].as_matrix(), color='r', ls='-', label='Original Value')
-        #plt.plot(minMaxScalerMap[output].inverse_transform(test[output].as_matrix()), color='g', ls='-', label='Actual Value')
-        plt.plot(minMaxScalerMap[output].inverse_transform(predicted_value), color='b', ls='--', label='predicted_value Value')
-    else:
+        #test_cp.plot(y=output, color='r', ls='-', label='Original Value')
+        plt.plot(minMaxScalerMap[output].inverse_transform(predicted_value), color='b', ls='-', label='predicted_value Value')
+#        test_cp_2 = test_cp.copy()
+#        test_cp_2['x'] = minMaxScalerMap[output].inverse_transform(predicted_value);
+#        plt.plot(test_cp_2['x'], color='b', ls='-', label='predicted_value Value')
+    elif isNN == True:
         print('begin: fit')
         model.fit(train[features].as_matrix(), train[output].as_matrix(), *args, **kwargs)
         print('end: fit')
@@ -377,8 +423,43 @@ def benchmark_model(model, train, test, features, output,\
         print('predicted_value:', predicted_value)
         print('end: predict')
         plt.plot(test_cp[output].as_matrix(), color='r', ls='-', label='Original Value')
-        #plt.plot(minMaxScalerMap[output].inverse_transform(test[output].as_matrix()), color='g', ls='-', label='Actual Value')
-        plt.plot(minMaxScalerMap[output].inverse_transform(predicted_value), color='b', ls='--', label='predicted_value Value')
+        #test_cp.plot(y=output, color='r', ls='-', label='Original Value')
+        plt.plot(minMaxScalerMap[output].inverse_transform(predicted_value), color='b', ls='-', label='predicted_value Value')
+    elif isNN == 'LSTM':
+        train_cp = train.copy()
+        train_cp['one'] = 1
+        trainX = []
+        look_back = 1
+#        for index, item in enumerate(train_cp['one']):
+#            trainX.append((train[features].as_matrix()[index], 1, train[output].as_matrix()[index]))
+#        print('trainX:')
+#        
+#        trainY = []
+#        for index, item in enumerate(train_cp['one']):
+#            trainY.append((train[features].as_matrix()[index], 1, train[output].as_matrix()[index]))
+#        print('trainY:')
+
+        #trainX, trainY = create_dataset(train, features, output, look_back=1)
+
+        trainX = np.reshape(train[features].as_matrix(), (train[features].as_matrix().shape[0], look_back, train[features].as_matrix().shape[1]))
+        #trainX = np.reshape(trainX, (trainX.shape[0], look_back, trainX.shape[1]))
+
+        print('begin: fit')
+        model.fit(trainX, train[output].as_matrix(), epochs=1, batch_size=10, verbose=1)
+        #model.fit(trainX, trainY, epochs=1, batch_size=1, verbose=1)
+        print('end: fit')
+        print('begin: predict')
+        
+        m = test[features].as_matrix()
+
+        testX = np.reshape(m, (m.shape[0], look_back, m.shape[1]))
+
+        predicted_value = model.predict(testX)
+        print('predicted_value:', predicted_value)
+        print('end: predict')
+        plt.plot(test_cp[output].as_matrix(), color='r', ls='-', label='Original Value')
+        #test_cp.plot(y=output, color='r', ls='-', label='Original Value')
+        plt.plot(minMaxScalerMap[output].inverse_transform(predicted_value), color='b', ls='-', label='predicted_value Value')
         
 
     plt.xlabel('Number of Set')
