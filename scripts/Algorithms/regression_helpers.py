@@ -40,6 +40,8 @@ from sklearn.preprocessing import MinMaxScaler
 
 import time
 
+from sklearn import tree
+
 def load_dataset(path_directory, symbol): 
     """
         Import DataFrame from Dataset.
@@ -233,11 +235,15 @@ def performRegression(dataset, split, symbol, output_dir):
         dataset[i] = scaler.fit_transform(dataset[i].reshape(-1, 1))
     
     touple = (4,5);
+    
+    #dataset['close'] = 0
 
     features = dataset.columns[1:]
+    
     #print("features::::::::::", features)
     #features = features[touple[0]:touple[1]]
     #print("features::::::::::", features)
+    
     index = int(np.floor(dataset.shape[0]*split))
     train, test = dataset[:index], dataset[index:]
 
@@ -273,10 +279,14 @@ def performRegression(dataset, split, symbol, output_dir):
     
     kr = GridSearchCV(KernelRidge(kernel='rbf'), cv=5,
                   param_grid={"alpha": [1e0, 0.1, 1e-2, 1e-3]})
-
+    
+    
+    
+    rand_forest_r = RandomForestRegressor(n_estimators=10, n_jobs=-1);
+    
 
     classifiers = [
-        RandomForestRegressor(n_estimators=10, n_jobs=-1),
+        rand_forest_r,
         SVR(C=100000, kernel='rbf', epsilon=0.1, gamma=1, degree=2),#original: learnes fast workes not well
         SVR(C=1, kernel='rbf', epsilon=0.0000001, tol=0.00000001),#: learnes slow workes well, only common features
         #svr,#GridSearchCV, workes not well
@@ -296,7 +306,9 @@ def performRegression(dataset, split, symbol, output_dir):
         predicted_values.append(pred)
         s = score(pred, test_cp, output)
         print(s)
-        time.sleep(4)
+        time.sleep(4)   
+    
+    #return print_feature_importance(rand_forest_r, features)
     
     
     epochs=1
@@ -313,8 +325,8 @@ def performRegression(dataset, split, symbol, output_dir):
     print('begin: classifier1-classifier1'*5)
     
     
-   predicted_values.append(benchmark_model(classifier1, \
-      train, test, features, output, out_params, True, minMaxScalerMap, test_cp))
+    predicted_values.append(benchmark_model(classifier1, \
+                                            train, test, features, output, out_params, True, minMaxScalerMap, test_cp))
     
     print('end: classifier1-classifier1'*5)
     
@@ -345,6 +357,36 @@ def score(pred, test_cp, output):
             pred))
     r2_scores = r2_score(test_cp[output], pred)
     return mean_squared_errors, r2_scores
+
+def print_feature_importance(rand_forest_r, features):
+    print('00'*80)
+    
+    print('rand_forest_r:', rand_forest_r)
+    
+    print('len feature_importances_:', len(rand_forest_r.feature_importances_))
+    
+    print('feature_importances_:', rand_forest_r.feature_importances_)
+    
+    f_i_list = []; 
+    
+    for i,f in enumerate(features):
+        f_i_list.append((rand_forest_r.feature_importances_[i], f))
+    
+    f_i_list.sort(key=lambda x: x[0], reverse=True)
+    
+    for i in f_i_list:
+        print(i)
+        
+
+    
+    #my_file = '../../playground/output/tree.png';
+    #for r_tree in rand_forest_r.estimators_:
+    #r_tree = rand_forest_r.estimators_[0]
+    #tree.export_graphviz(r_tree, out_file = my_file)
+    
+        
+    print('010'*80)
+    
 
 def baseline_model():
 	# create model

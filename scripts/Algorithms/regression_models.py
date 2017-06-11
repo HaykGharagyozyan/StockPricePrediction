@@ -86,7 +86,7 @@ def main(dir_path, output_dir):
             
             finance = finance.dropna()
 
-            finance[finance.columns[0]] = finance[finance.columns[0]].shift(-1)
+            finance[finance.columns[0]] = finance[finance.columns[0]].shift(-2)
             finance = finance.dropna()
 
             print(high_value)
