@@ -102,7 +102,7 @@ def main(dir_path, output_dir):
             
             
 
-            mean_squared_errors, r2_scores = performRegression(finance, 0.95, \
+            mean_squared_errors, r2_scores = performRegression(finance, 0.99, \
                 symbol, output_dir)
 
             scores[symbol] = [mean_squared_errors, r2_scores]

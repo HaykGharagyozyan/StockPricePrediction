@@ -1,0 +1,140 @@
+
+---------------------------
+instrument: A
+train/test 0.99
+open shift -2
+
+def lstm(look_back=1):
+    feature_count = 82
+    model = Sequential()
+    model.add(LSTM(feature_count, batch_input_shape=(None, 1 , feature_count ), return_sequences=True )) #input_dim=feature_count
+    
+    model.add(LSTM(feature_count/2, return_sequences=True))
+    
+    model.add(LSTM(feature_count/4, return_sequences=True))
+    
+    model.add(LSTM(feature_count/8, return_sequences=True))
+    
+    model.add(LSTM(feature_count/16))
+    
+    model.add(Dense(1))
+    model.compile(loss='mean_squared_error', optimizer='adam')
+    return model
+--------------------------
+
+
+Part 1
+
+best:
+epochs=1
+batch_size=5
+look_back = 50
+
+[0.29301064487901857] [-1596047.0219231688]
+
+
+Part 2:begin**********************
+
+epochs=5
+batch_size=1
+look_back = 50
+
+[0.28982004719609794] [-1578667.6290254099]
+
+-----
+
+epochs=5
+batch_size=10
+look_back = 50
+
+[0.27604230090423093] [-1503619.3497222022]
+
+------
+
+epochs=2
+batch_size=1
+look_back = 50
+
+[0.27258651628757186] [-1484795.4663650342]
+
+------
+
+epochs=5
+batch_size=1
+look_back = 1
+
+[0.29212061803526745] [-1591198.9878730269]
+
+
+
+Part 2:end************************
+
+
+
+Part 1:begin *********************
+
+epochs=1
+batch_size=5
+look_back = 50
+
+[0.29301064487901857] [-1596047.0219231688]
+
+-------
+
+epochs=1
+batch_size=1
+look_back = 55
+
+[0.25886791425456351] [-1410069.3496829094]
+
+-------
+
+epochs=1
+batch_size=1
+look_back = 7
+
+[0.25875461812654815] [-1409452.2183118458]
+
+-------
+
+epochs=1
+batch_size=1
+look_back = 35
+
+[0.2581242249297741] [-1406018.4256072822]
+
+-------
+
+epochs=1
+batch_size=1
+look_back = 100
+        
+[0.25578682366380451] [-1393286.449031715]
+
+-------
+
+epochs=1
+batch_size=1
+look_back = 1
+
+[0.25409262786774861] [-1384058.0544450199]
+
+--------
+
+epochs=1
+batch_size=1
+look_back = 25
+
+[0.25386125746871741] [-1382797.7648474942]
+
+-------
+
+epochs=1
+batch_size=1
+look_back = 50
+
+[0.25386119382645894] [-1382797.4181839768]
+
+-------
+
+Part 1:end ****************

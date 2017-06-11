@@ -207,6 +207,7 @@ def analogize(value, min_val, max_val, range_touple=(0, 100)):
 ### Works well for KNN only:end
 
 
+#LSTM 
 def create_dataset(dataset, features, output, look_back=1):
     dataX, dataY = [], []
     for i in range(len(dataset)-look_back-1):
@@ -313,7 +314,7 @@ def performRegression(dataset, split, symbol, output_dir):
     
     
     predicted_values.append(benchmark_model(classifier1, \
-        train, test, features, output, out_params, True, minMaxScalerMap, test_cp))
+       train, test, features, output, out_params, True, minMaxScalerMap, test_cp))
     
     print('end: classifier1-classifier1'*5)
     
@@ -415,21 +416,23 @@ def benchmark_model(model, train, test, features, output,\
 #        test_cp_2['x'] = minMaxScalerMap[output].inverse_transform(predicted_value);
 #        plt.plot(test_cp_2['x'], color='b', ls='-', label='predicted_value Value')
     elif isNN == True:
-        print('begin: fit')
-        model.fit(train[features].as_matrix(), train[output].as_matrix(), *args, **kwargs)
-        print('end: fit')
-        print('begin: predict')
-        predicted_value = model.predict(test[features].as_matrix(), batch_size=5, verbose=1)
-        print('predicted_value:', predicted_value)
-        print('end: predict')
-        plt.plot(test_cp[output].as_matrix(), color='r', ls='-', label='Original Value')
-        #test_cp.plot(y=output, color='r', ls='-', label='Original Value')
-        plt.plot(minMaxScalerMap[output].inverse_transform(predicted_value), color='b', ls='-', label='predicted_value Value')
+       print('begin: fit')
+       model.fit(train[features].as_matrix(), train[output].as_matrix(), *args, **kwargs)
+       print('end: fit')
+       print('begin: predict')
+       predicted_value = model.predict(test[features].as_matrix(), batch_size=5, verbose=1)
+       print('predicted_value:', predicted_value)
+       print('end: predict')
+       plt.plot(test_cp[output].as_matrix(), color='r', ls='-', label='Original Value')
+       #test_cp.plot(y=output, color='r', ls='-', label='Original Value')
+       plt.plot(minMaxScalerMap[output].inverse_transform(predicted_value), color='b', ls='-', label='predicted_value Value')
     elif isNN == 'LSTM':
         train_cp = train.copy()
         train_cp['one'] = 1
         trainX = []
-        look_back = 1
+        epochs=1
+        batch_size=1
+        look_back = 50
 #        for index, item in enumerate(train_cp['one']):
 #            trainX.append((train[features].as_matrix()[index], 1, train[output].as_matrix()[index]))
 #        print('trainX:')
@@ -439,20 +442,22 @@ def benchmark_model(model, train, test, features, output,\
 #            trainY.append((train[features].as_matrix()[index], 1, train[output].as_matrix()[index]))
 #        print('trainY:')
 
-        #trainX, trainY = create_dataset(train, features, output, look_back=1)
+        trainX, trainY = create_dataset(train, features, output, look_back=look_back)
+        
+        train_fm = train[features].as_matrix()
 
-        trainX = np.reshape(train[features].as_matrix(), (train[features].as_matrix().shape[0], look_back, train[features].as_matrix().shape[1]))
+        trainX = np.reshape(train_fm, (train_fm.shape[0], 1, train_fm.shape[1]))
         #trainX = np.reshape(trainX, (trainX.shape[0], look_back, trainX.shape[1]))
 
         print('begin: fit')
-        model.fit(trainX, train[output].as_matrix(), epochs=1, batch_size=10, verbose=1)
+        model.fit(trainX, train[output].as_matrix(), epochs=epochs, batch_size=batch_size, verbose=1)
         #model.fit(trainX, trainY, epochs=1, batch_size=1, verbose=1)
         print('end: fit')
         print('begin: predict')
         
-        m = test[features].as_matrix()
+        test_fm = test[features].as_matrix()
 
-        testX = np.reshape(m, (m.shape[0], look_back, m.shape[1]))
+        testX = np.reshape(test_fm, (test_fm.shape[0], 1, test_fm.shape[1]))
 
         predicted_value = model.predict(testX)
         print('predicted_value:', predicted_value)
