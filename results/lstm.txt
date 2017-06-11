@@ -59,6 +59,14 @@ look_back = 50
 
 ------
 
+epochs=20
+batch_size=1
+look_back = 50
+
+[0.31048661745897715] [-1691239.7801212301]
+
+------
+
 epochs=5
 batch_size=1
 look_back = 1

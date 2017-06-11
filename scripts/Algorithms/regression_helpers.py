@@ -313,8 +313,8 @@ def performRegression(dataset, split, symbol, output_dir):
     print('begin: classifier1-classifier1'*5)
     
     
-    predicted_values.append(benchmark_model(classifier1, \
-       train, test, features, output, out_params, True, minMaxScalerMap, test_cp))
+   predicted_values.append(benchmark_model(classifier1, \
+      train, test, features, output, out_params, True, minMaxScalerMap, test_cp))
     
     print('end: classifier1-classifier1'*5)
     
@@ -358,7 +358,7 @@ def baseline_model():
 	# Compile model
     model.compile(loss='mean_squared_error', optimizer='adam')
     
-    model_img_output = '../../playground/output/model.png';
+    model_img_output = '../../playground/output/mode_nn.png';
     plot_model(model, to_file=model_img_output, show_shapes=True)
     print('output model to:', model_img_output)
     return model
@@ -378,6 +378,10 @@ def lstm(look_back=1):
     
     model.add(Dense(1))
     model.compile(loss='mean_squared_error', optimizer='adam')
+    
+    model_img_output = '../../playground/output/mode_lstm.png';
+    plot_model(model, to_file=model_img_output, show_shapes=True)
+    print('output model to:', model_img_output)
     return model
 
 def benchmark_model(model, train, test, features, output,\
