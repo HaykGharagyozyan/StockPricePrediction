@@ -210,6 +210,8 @@ def performRegression(dataset, split, symbol, output_dir):
     output = dataset.columns[0]
 
     predicted_values = []
+    
+    np.random.seed(7)
 
     classifiers = [
         RandomForestRegressor(n_estimators=10, n_jobs=-1),
