@@ -233,8 +233,8 @@ def performRegression(dataset, split, symbol, output_dir):
 
     for pred in predicted_values:
         mean_squared_errors.append(mean_squared_error(test[output].as_matrix(), \
-            pred.as_matrix()))
-        r2_scores.append(r2_score(test[output].as_matrix(), pred.as_matrix()))
+            pred))
+        r2_scores.append(r2_score(test[output].as_matrix(), pred))
 
     print(mean_squared_errors, r2_scores)
 
