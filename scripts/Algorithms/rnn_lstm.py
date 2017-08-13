@@ -13,10 +13,11 @@ from keras.layers.core import Dense, Dropout, Activation
 from keras.layers.embeddings import Embedding
 from keras.layers.recurrent import LSTM, SimpleRNN, GRU
 from keras.layers.core import *
+from keras.layers import merge, Concatenate
 
 max_features = 5883
 maxlen = 80
-batch_size = 32
+batch_size = 80
 
 in_out_neurons = 2
 hidden_neurons = 300
@@ -101,27 +102,44 @@ def rnn_lstm(file_dataframe, test_size=0.2, col="high"):
     #    optimizer="rmsprop", metrics=['accuracy'])
     '''
 
-    input_dim = 32
+    input_dim = 80
     hidden = 32
-    step = 10
+    step = 1
 
     #The LSTM  model -  output_shape = (batch, step, hidden)
     model1 = Sequential()
-    model1.add(LSTM(input_dim=input_dim, output_dim=hidden, input_length=step, return_sequences=True))
+    #model1.add(LSTM(input_dim=input_dim, output_dim=hidden, input_length=step, return_sequences=True))
+    model1.add(LSTM(units=input_dim, return_sequences=True, input_shape=(10, input_dim)))
 
     #The weight model  - actual output shape  = (batch, step)
     # after reshape : output_shape = (batch, step,  hidden)
     model2 = Sequential()
-    model2.add(Dense(input_dim=input_dim, output_dim=step))
+    #model2.add(Dense(input_dim=input_dim, output_dim=step))
+    
+    model2.add(Dense(units=step, input_dim=input_dim))
+
     model2.add(Activation('softmax')) # Learn a probability distribution over each  step.
     #Reshape to match LSTM's output shape, so that we can do element-wise multiplication.
-    model2.add(RepeatVector(hidden))
-    model2.add(Permute((2, 1)))
+    # model2.add(RepeatVector(hidden))
+    #model2.add(Permute((2, 1)))
 
     #The final model which gives the weighted sum:
-    model = Sequential()
-    model.add(Merge([model1, model2], 'sum', concat_axis=1))  # Multiply each element with corresponding weight a[i][j][k] * b[i][j]
-    model.add((Merge([model1, model2], mode='sum', concat_axis=1)) # Sum the weighted elements.
+#    model = Sequential()
+#    model.add(merge([model1, model2], 'sum', concat_axis=1))  # Multiply each element with corresponding weight a[i][j][k] * b[i][j]
+#    model.add(merge([model1, model2], mode='sum', concat_axis=1)) # Sum the weighted elements.
+
+    Concatenate([model1, model2]);
+    
+    model = model2;
+#    
+#    model.add(LSTM(units=input_dim, return_sequences=True, input_shape=(10, input_dim)))
+#    
+#    model.add(Dense(units=10, input_dim=input_dim))
+#    
+#    model2.add(Activation('softmax'))
+#    
+    
+    
 
     model.compile(loss='mse', optimizer='sgd')
 
@@ -131,10 +149,16 @@ def rnn_lstm(file_dataframe, test_size=0.2, col="high"):
 
     model.fit(X_train, y_train, batch_size=batch_size, \
         validation_data=(X_test, y_test), nb_epoch=5)
-    score, accuracy = model.evaluate(X_test, y_test,
-                                batch_size=batch_size)
-    print('Test score:', score)
-    print('Test accuracy:', accuracy)
+
+    #loss = model.evaluate(X_test, y_test, batch_size=1)
+    
+    predictions = model.predict(X_test, y_test, batch_size=1)
+    
+    print(predictions)
+    
+    #print('Test loss:', loss)
+#    print('Test score:', score)
+#    print('Test accuracy:', accuracy)
 
     return (score, accuracy)
 

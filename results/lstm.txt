@@ -30,7 +30,70 @@ epochs=1
 batch_size=5
 look_back = 50
 
+
+
+Part 5:b
+
+epochs=120
+batch_size=1
+look_back = 50
+
+[0.28659824767665132] [-1561118.2776966589]
+
+Part 5:e
+
+
 [0.29301064487901857] [-1596047.0219231688]
+
+Part 4:begin**********************
+
+
+[0.25386125746871741] [-1382797.7648474942]
+
+
+less layers
+
+[0.32026500086564924] [-1744503.2699178862]
+
+
+less layers
+activation='tanh' (+)
+
+[0.32005229792793938] [-1743344.6631951537]
+
+less layers
+activation='tanh' (+)
+recurrent_activation='hard_sigmoid' (+)
+
+[0.31984036683637812] [-1742190.2607685456]
+
+activation='tanh', recurrent_activation='hard_sigmoid', use_bias=True, kernel_initializer='glorot_uniform', recurrent_initializer='orthogonal', bias_initializer='zeros', unit_forget_bias=True, kernel_regularizer=None, recurrent_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, recurrent_constraint=None, bias_constraint=None, dropout=0.0, recurrent_dropout=0.0
+    (-)    
+
+[0.32005434881103872] [-1743355.8344886582]
+
+
+use all layers
+
+[0.25861166257921253] [-1408673.5301565325]
+
+Part 4:end************************
+
+Part 3:begin**********************
+
+dataset['close'] = 0#dataset['close']/2
+    dataset['low'] = 0#dataset['low']/2
+    dataset['high'] = 0#dataset['high']/2
+    dataset['adj_close'] = 0#dataset['adj_close']/2
+    
+epochs=100
+batch_size=1
+look_back = 50
+
+
+[0.29983109104256722] [-1633198.4353554687]
+
+Part 3:end************************
 
 
 Part 2:begin**********************

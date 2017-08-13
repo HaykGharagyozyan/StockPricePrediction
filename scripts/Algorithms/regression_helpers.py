@@ -26,6 +26,7 @@ import os
 
 #NN
 from keras.models import Sequential
+from keras.layers.core import Activation, Dropout
 from keras.layers import Dense, Activation, LSTM
 from keras.wrappers.scikit_learn import KerasRegressor
 from keras.utils import plot_model
@@ -234,9 +235,12 @@ def performRegression(dataset, split, symbol, output_dir):
         minMaxScalerMap[i] = scaler
         dataset[i] = scaler.fit_transform(dataset[i].reshape(-1, 1))
     
-    touple = (4,5);
+    #touple = (4,5);
     
-    #dataset['close'] = 0
+#    dataset['close'] = 0#dataset['close']/2
+#    dataset['low'] = 0#dataset['low']/2
+#    dataset['high'] = 0#dataset['high']/2
+#    dataset['adj_close'] = 0#dataset['adj_close']/2
 
     features = dataset.columns[1:]
     
@@ -297,7 +301,7 @@ def performRegression(dataset, split, symbol, output_dir):
         GradientBoostingRegressor(),
     ]
     
-    #classifiers = []
+    classifiers = []
 
     for classifier in classifiers:
         pred = benchmark_model(classifier, \
@@ -325,8 +329,8 @@ def performRegression(dataset, split, symbol, output_dir):
     print('begin: classifier1-classifier1'*5)
     
     
-    predicted_values.append(benchmark_model(classifier1, \
-                                            train, test, features, output, out_params, True, minMaxScalerMap, test_cp))
+#    predicted_values.append(benchmark_model(classifier1, \
+#                                            train, test, features, output, out_params, True, minMaxScalerMap, test_cp))
     
     print('end: classifier1-classifier1'*5)
     
@@ -407,18 +411,17 @@ def baseline_model():
 
 def lstm(look_back=1):
     feature_count = 82
+    units = 500
     model = Sequential()
-    model.add(LSTM(feature_count, batch_input_shape=(None, look_back , feature_count ), return_sequences=True )) #input_dim=feature_count
+    model.add(LSTM(units, batch_input_shape=(None, look_back , feature_count ), return_sequences=True, activation='tanh', recurrent_activation='hard_sigmoid' )) #input_dim=feature_count
     
-    model.add(LSTM(feature_count/2, return_sequences=True))
+    model.add(LSTM(units, return_sequences=True, activation='tanh', recurrent_activation='hard_sigmoid'))
     
-    model.add(LSTM(feature_count/4, return_sequences=True))
-    
-    model.add(LSTM(feature_count/8, return_sequences=True))
-    
-    model.add(LSTM(feature_count/16))
-    
+    model.add(LSTM(units, activation='tanh', recurrent_activation='hard_sigmoid'))
+
+    model.add(Dropout(.2))
     model.add(Dense(1))
+    model.add(Activation('linear'))
     model.compile(loss='mean_squared_error', optimizer='adam')
     
     model_img_output = '../../playground/output/mode_lstm.png';
@@ -476,7 +479,7 @@ def benchmark_model(model, train, test, features, output,\
         train_cp = train.copy()
         train_cp['one'] = 1
         trainX = []
-        epochs=1
+        epochs=120
         batch_size=1
         look_back = 50
 #        for index, item in enumerate(train_cp['one']):

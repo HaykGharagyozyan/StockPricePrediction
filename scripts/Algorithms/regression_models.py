@@ -21,7 +21,8 @@ import matplotlib.pyplot as plt
 import pandas
 import math
 from keras.models import Sequential
-from keras.layers import Dense
+#from keras.layers import Dense
+from keras.layers.core import Dense, Activation, Dense, Dropout
 from keras.layers import LSTM
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
@@ -147,7 +148,7 @@ def lstm_test(dir_path):
     print(len(train), len(test))
 
     # reshape into X=t and Y=t+1
-    look_back = 2
+    look_back = 3
     trainX, trainY = create_dataset(train, look_back)
     testX, testY = create_dataset(test, look_back)
     
@@ -159,8 +160,13 @@ def lstm_test(dir_path):
 
     
     model = Sequential()
-    model.add(LSTM(1, input_shape=(1, look_back)))
+    model.add(LSTM(400, input_shape=(1, look_back), return_sequences=True))
+    model.add(LSTM(400, return_sequences=True))
+    model.add(LSTM(400))
+    #model.add(Dense(10))
+    model.add(Dropout(.2))
     model.add(Dense(1))
+    #model.add(Activation('linear'))
     model.compile(loss='mean_squared_error', optimizer='adam')
     
     
@@ -171,7 +177,7 @@ def lstm_test(dir_path):
     print("trainX.shape[0]++++++:", trainX.shape[0])
     
     
-    model.fit(trainX, trainY, epochs=1, batch_size=1, verbose=1)
+    model.fit(trainX, trainY, epochs=40, batch_size=1, verbose=1)
     
     
     #print("trainX:----::::", trainX)
