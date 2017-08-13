@@ -215,14 +215,14 @@ def performRegression(dataset, split, symbol, output_dir):
         predicted_values.append(benchmark_model(classifier, \
             train, test, features, output, out_params))
 
-    maxiter = 1000
-    batch = 150
-
-    classifier = NeuralNet(50, learn_rate=1e-2)
-
-    predicted_values.append(benchmark_model(classifier, \
-        train, test, features, output, out_params, \
-        fine_tune=False, maxiter=maxiter, SGD=True, batch=batch, rho=0.9))
+#    maxiter = 1000
+#    batch = 150
+#
+#    classifier = NeuralNet(50, learn_rate=1e-2)
+#
+#    predicted_values.append(benchmark_model(classifier, \
+#        train, test, features, output, out_params, \
+#        fine_tune=False, maxiter=maxiter, SGD=True, batch=batch, rho=0.9))
     
 
     print('-'*80)
