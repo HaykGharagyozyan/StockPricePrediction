@@ -26,6 +26,8 @@ import os
 from sklearn.grid_search import GridSearchCV
 from Neural_Network import NeuralNet
 
+from sklearn.preprocessing import MinMaxScaler
+
 def load_dataset(path_directory, symbol): 
     """
         Import DataFrame from Dataset.
@@ -185,10 +187,18 @@ def performRegression(dataset, split, symbol, output_dir):
         Performing Regression on 
         Various algorithms
     """
+    
+    dataset_cp = dataset.copy();
+    minMaxScalerMap = {};    
+    for i in dataset:
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        minMaxScalerMap[i] = scaler
+        dataset[i] = scaler.fit_transform(dataset[i])
 
     features = dataset.columns[1:]
     index = int(np.floor(dataset.shape[0]*split))
     train, test = dataset[:index], dataset[index:]
+    train_cp, test_cp = dataset_cp[:index], dataset_cp[index:]
     print('Size of train set: ', train.shape)
     print('Size of test set: ', test.shape)
     
@@ -213,7 +223,7 @@ def performRegression(dataset, split, symbol, output_dir):
     for classifier in classifiers:
 
         predicted_values.append(benchmark_model(classifier, \
-            train, test, features, output, out_params))
+            train, test, features, output, out_params, minMaxScalerMap, test_cp))
 
 #    maxiter = 1000
 #    batch = 150
@@ -232,16 +242,16 @@ def performRegression(dataset, split, symbol, output_dir):
     r2_scores = []
 
     for pred in predicted_values:
-        mean_squared_errors.append(mean_squared_error(test[output].as_matrix(), \
+        mean_squared_errors.append(mean_squared_error(test_cp[output].as_matrix(), \
             pred))
-        r2_scores.append(r2_score(test[output].as_matrix(), pred))
+        r2_scores.append(r2_score(test_cp[output].as_matrix(), pred))
 
     print(mean_squared_errors, r2_scores)
 
     return mean_squared_errors, r2_scores
 
 def benchmark_model(model, train, test, features, output, \
-    output_params, *args, **kwargs):
+    output_params, minMaxScalerMap, test_cp, *args, **kwargs):
     '''
         Performs Training and Testing of the Data on the Model.
     '''
@@ -264,8 +274,11 @@ def benchmark_model(model, train, test, features, output, \
     model.fit(train[features].as_matrix(), train[output].as_matrix(), *args, **kwargs)
     predicted_value = model.predict(test[features].as_matrix())
 
-    plt.plot(test[output].as_matrix(), color='g', ls='-', label='Actual Value')
-    plt.plot(predicted_value, color='b', ls='--', label='predicted_value Value')
+    #plt.plot(test[output].as_matrix(), color='g', ls='-', label='Actual Value')
+    #plt.plot(predicted_value, color='b', ls='--', label='predicted_value Value')
+    
+    plt.plot(test_cp[output].as_matrix(), color='r', ls='-', label='Original Value')
+    plt.plot(minMaxScalerMap[output].inverse_transform(predicted_value), color='b', ls='--', label='predicted_value Value')
 
     plt.xlabel('Number of Set')
     plt.ylabel('Output Value')
@@ -278,4 +291,4 @@ def benchmark_model(model, train, test, features, output, \
     #plt.show()
     plt.clf()
 
-    return predicted_value
+    return minMaxScalerMap[output].inverse_transform(predicted_value)
