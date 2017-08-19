@@ -182,7 +182,7 @@ def getFeatures(X_train, y_train, X_test, num_features):
     X_test = ch2.transform(X_test)
     return X_train, X_test
 
-def performRegression(dataset, split, symbol, output_dir):
+def performRegression(dataset, split, symbol, output_dir, grid_search=False):
     """
         Performing Regression on 
         Various algorithms
@@ -212,10 +212,24 @@ def performRegression(dataset, split, symbol, output_dir):
     predicted_values = []
     
     np.random.seed(7)
+    #grid_search = True;
+    if grid_search:
+        svr = GridSearchCV(SVR(), [{
+                                'kernel': ['poly'], #'linear', 'sigmoid', 'precomputed'
+                                'gamma': [0.0001],#[0.001, 0.0001, 0.00001, 'auto'],
+                                'C': [500],#[1, 10, 450, 500, 550, 100000],
+                                'tol': [1e-08],#[1e-07, 1e-08, 1e-09],
+                                'epsilon': [1e-06]#[1e-05, 1e-06, 1e-07]
+            }], cv=3, n_jobs=-1, scoring='r2', error_score=0, verbose=1)
+    else:
+        svr = SVR(C=500, kernel='linear', epsilon=1e-06, gamma=0.0001, tol=1e-08)
+        #[1.0871579894144083e-07] [0.96711614766032128]
+    
 
     classifiers = [
         RandomForestRegressor(n_estimators=10, n_jobs=-1),
         SVR(C=100000, kernel='rbf', epsilon=0.1, gamma=1, degree=2),
+        svr,
         BaggingRegressor(),
         AdaBoostRegressor(),
         KNeighborsRegressor(),
@@ -226,6 +240,10 @@ def performRegression(dataset, split, symbol, output_dir):
 
         predicted_values.append(benchmark_model(classifier, \
             train, test, features, output, out_params, minMaxScalerMap, test_cp))
+    if grid_search:
+        print("Best parameters set found on development set for SVR:")
+        print()
+        print(svr.best_params_)
 
 #    maxiter = 1000
 #    batch = 150
@@ -290,7 +308,7 @@ def benchmark_model(model, train, test, features, output, \
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, str(symbol) + '_' \
         + model_name + '.png'), dpi=100)
-    #plt.show()
+    plt.show()
     plt.clf()
 
     return minMaxScalerMap[output].inverse_transform(predicted_value)

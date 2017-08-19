@@ -18,6 +18,8 @@ def main(dir_path, output_dir):
     scores = {}
 
     files = os.listdir(dir_path)
+    
+    files = ['AAL.csv'];
 
     maxdelta = 30
 
