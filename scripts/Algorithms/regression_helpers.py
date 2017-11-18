@@ -215,14 +215,14 @@ def performRegression(dataset, split, symbol, output_dir, grid_search=False):
     #grid_search = True;
     if grid_search:
         svr = GridSearchCV(SVR(), [{
-                                'kernel': ['poly'], #'linear', 'sigmoid', 'precomputed'
+                                'kernel': ['rbf'], #'poly' 'linear', 'sigmoid', 'precomputed'
                                 'gamma': [0.0001],#[0.001, 0.0001, 0.00001, 'auto'],
                                 'C': [500],#[1, 10, 450, 500, 550, 100000],
                                 'tol': [1e-08],#[1e-07, 1e-08, 1e-09],
                                 'epsilon': [1e-06]#[1e-05, 1e-06, 1e-07]
             }], cv=3, n_jobs=-1, scoring='r2', error_score=0, verbose=1)
     else:
-        svr = SVR(C=500, kernel='linear', epsilon=1e-06, gamma=0.0001, tol=1e-08)
+        svr = SVR(C=500, kernel='rbf', epsilon=1e-06, gamma=0.0001, tol=1e-08)
         #[1.0871579894144083e-07] [0.96711614766032128]
     
 
